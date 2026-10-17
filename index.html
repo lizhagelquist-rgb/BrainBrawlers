@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brain Brawlers</title>
+<style>
+body {
+  background: #17132f;
+  color: white;
+  font-family: Arial, sans-serif;
+  text-align: center;
+  padding: 30px 15px;
+}
+h1 { color: #ffcc00; font-size: 42px; }
+h2 { color: #ffffff; }
+button {
+  background: #7c3aed;
+  color: white;
+  border: none;
+  border-radius: 15px;
+  padding: 16px 22px;
+  margin: 8px;
+  font-size: 19px;
+  cursor: pointer;
+}
+button:hover { background: #9b65ff; }
+#spil {
+  display: none;
+  max-width: 650px;
+  margin: auto;
+}
+#sporgsmaal {
+  font-size: 25px;
+  margin: 30px 0;
+}
+#besked { font-size: 22px; min-height: 30px; }
+#point { color: #ffcc00; font-size: 25px; }
+#kategori { color: #c4b5fd; }
+</style>
+</head>
+<body>
+
+<h1>🎮 BRAIN BRAWLERS</h1>
+<h2>🧠 HAGELQUIST-KLANENS HJERNEKAMP</h2>
+<p>Besvar spørgsmål, saml point og bliv hjernemester!</p>
+
+<div id="start">
+  <h2>Vælg sværhedsgrad</h2>
+  <button onclick="startSpil('Let')">🟢 Let</button>
+  <button onclick="startSpil('Mellem')">🟡 Mellem</button>
+  <button onclick="startSpil('Svær')">🔴 Svær</button>
+</div>
+
+<div id="spil">
+  <h2 id="niveau"></h2>
+  <h3 id="kategori"></h3>
+  <p id="fremskridt"></p>
+  <p id="sporgsmaal"></p>
+  <div id="svarmuligheder"></div>
+  <p id="besked"></p>
+  <h2 id="point">⭐ Point: 0</h2>
+  <button id="naeste" onclick="naesteSporgsmaal()"
+    style="display:none">Næste spørgsmål ➡️</button>
+</div>
+
+<script>
+const alleSporgsmaal = [
+  // SKOLEFAG
+  {
+    kategori: "📚 Skolefag", niveau: "Let",
+    spm: "Hvad er 7 × 8?",
+    svar: ["54", "56", "64"], korrekt: 1
+  },
+  {
+    kategori: "📚 Skolefag", niveau: "Mellem",
+    spm: "Hvad er 3/4 af 100?",
+    svar: ["25", "50", "75"], korrekt: 2
+  },
+  {
+    kategori: "📚 Skolefag", niveau: "Svær",
+    spm: "En vare koster 400 kr. og får 15 % rabat. Hvad koster den?",
+    svar: ["340 kr.", "350 kr.", "360 kr."], korrekt: 0
+  },
+
+  // PSYKOLOGI
+  {
+    kategori: "🧠 Psykologi", niveau: "Let",
+    spm: "Hvad kan hjælpe, når man bliver vred?",
+    svar: [
+      "Råbe højere",
+      "Trække vejret roligt",
+      "Slå i bordet"
+    ], korrekt: 1
+  },
+  {
+    kategori: "🧠 Psykologi", niveau: "Mellem",
+    spm: "Hvad betyder empati?",
+    svar: [
+      "At vinde en diskussion",
+      "At forstå andres følelser",
+      "At være enig med alle"
+    ], korrekt: 1
+  },
+  {
+    kategori: "🧠 Psykologi", niveau: "Svær",
+    spm: "Du tænker: 'Jeg fejlede én gang, så jeg kan aldrig lære det.' Hvad er det et eksempel på?",
+    svar: [
+      "Overgeneralisering",
+      "God planlægning",
+      "Koncentration"
+    ], korrekt: 0
+  },
+
+  // LOGIK
+  {
+    kategori: "🧩 Logik", niveau: "Let",
+    spm: "Hvilket tal kommer næste gang? 2, 4, 6, 8, ...",
+    svar: ["9", "10", "12"], korrekt: 1
+  },
+  {
+    kategori: "🧩 Logik", niveau: "Mellem",
+    spm: "Hvilket tal mangler? 3, 6, 12, 24, ...",
+    svar: ["36", "48", "50"], korrekt: 1
+  },
+  {
+    kategori: "🧩 Logik", niveau: "Svær",
+    spm: "Alle Zipper er Blopper. Alle Blopper er Ripper. Hvad må være sandt?",
+    svar: [
+      "Alle Ripper er Zipper",
+      "Alle Zipper er Ripper",
+      "Ingen Zipper er Ripper"
+    ], korrekt: 1
+  },
+
+  // PARATVIDEN
+  {
+    kategori: "🌍 Paratviden", niveau: "Let",
+    spm: "Hvilken planet bor vi på?",
+    svar: ["Mars", "Jorden", "Venus"], korrekt: 1
+  },
+  {
+    kategori: "🌍 Paratviden", niveau: "Mellem",
+    spm: "Hvad er hovedstaden i Australien?",
+    svar: ["Sydney", "Melbourne", "Canberra"], korrekt: 2
+  },
+  {
+    kategori: "🌍 Paratviden", niveau: "Svær",
+    spm: "Hvilket grundstof har det kemiske symbol W?",
+    svar: ["Wolfram", "Wismut", "Watt"], korrekt: 0
+  }
+];
+
+let spoergsmaal = [];
+let nummer = 0;
+let point = 0;
+let valgtNiveau = "";
+
+function startSpil(niveau) {
+  valgtNiveau = niveau;
+  point = 0;
+  nummer = 0;
+
+  // Bland kategorierne og spørgsmålene
+  spoergsmaal = alleSporgsmaal
+    .filter(q => q.niveau === niveau)
+    .sort(() => Math.random() - 0.5);
+
+  document.getElementById("start").style.display = "none";
+  document.getElementById("spil").style.display = "block";
+  document.getElementById("niveau").innerText =
+    "⚔️ Niveau: " + niveau;
+
+  visSporgsmaal();
+}
+
+function visSporgsmaal() {
+  const q = spoergsmaal[nummer];
+
+  document.getElementById("kategori").innerText = q.kategori;
+  document.getElementById("fremskridt").innerText =
+    "Spørgsmål " + (nummer + 1) + " af " + spoergsmaal.length;
+  document.getElementById("sporgsmaal").innerText = q.spm;
+  document.getElementById("besked").innerText = "";
+  document.getElementById("naeste").style.display = "none";
+
+  const felt = document.getElementById("svarmuligheder");
+  felt.innerHTML = "";
+
+  q.svar.forEach((mulighed, index) => {
+    const knap = document.createElement("button");
+    knap.innerText = mulighed;
+    knap.onclick = () => tjekSvar(index);
+    felt.appendChild(knap);
+  });
+}
+
+function tjekSvar(valg) {
+  const q = spoergsmaal[nummer];
+
+  document.querySelectorAll("#svarmuligheder button")
+    .forEach(knap => knap.disabled = true);
+
+  if (valg === q.korrekt) {
+    point += 10;
+    document.getElementById("besked").innerText =
+      "🎉 Rigtigt! +10 point!";
+  } else {
+    document.getElementById("besked").innerText =
+      "💪 Godt forsøgt! Det rigtige svar er: " +
+      q.svar[q.korrekt];
+  }
+
+  document.getElementById("point").innerText =
+    "⭐ Point: " + point;
+
+  document.getElementById("naeste").style.display = "inline-block";
+}
+
+function naesteSporgsmaal() {
+  nummer++;
+
+  if (nummer < spoergsmaal.length) {
+    visSporgsmaal();
+  } else {
+    document.getElementById("kategori").innerText = "🏆 Kampen er slut!";
+    document.getElementById("fremskridt").innerText = "";
+    document.getElementById("sporgsmaal").innerText =
+      "Hagelquist-klanen fik " + point + " point!";
+    document.getElementById("svarmuligheder").innerHTML = "";
+    document.getElementById("besked").innerText =
+      "Du klarede " + (point / 10) + " af " +
+      spoergsmaal.length + " spørgsmål!";
+    document.getElementById("naeste").style.display = "none";
+
+    const igen = document.createElement("button");
+  
+  
+    igen.innerText = "⚔️ GÅ TIL ARENAEN!"; igen.onclick = startArena;
+    document.getElementById("svarmuligheder").appendChild(igen);
+  }
+}
+</script>
+<style>
+  #arena {
+    display: none;
+    max-width: 650px;
+    margin: 20px auto;
+  }
+
+  #spilbane {
+    background: #111827;
+    border: 4px solid #8b5cf6;
+    border-radius: 15px;
+    width: 100%;
+    max-width: 560px;
+    height: auto;
+    touch-action: none;
+  }
+
+  #styring button {
+    min-width: 65px;
+    padding: 12px;
+    font-size: 24px;
+  }
+
+  #arenaInfo {
+    color: #ffcc00;
+    font-size: 20px;
+  }
+</style>
+
+<div id="arena">
+  <h2>⚔️ HAGELQUIST ARENA</h2>
+  <p id="arenaInfo"></p>
+  <canvas id="spilbane" width="560" height="400"></canvas>
+
+  <p>Brug piletasterne til at bevæge dig.</p>
+  <p>Tryk mellemrum for at angribe!</p>
+
+  <div id="styring">
+    <button onclick="flyt(0,-1)">⬆️</button>
+    <div>
+      <button onclick="flyt(-1,0)">⬅️</button>
+      <button onclick="angrib()">⚡</button>
+      <button onclick="flyt(1,0)">➡️</button>
+    </div>
+    <button onclick="flyt(0,1)">⬇️</button>
+  </div>
+
+  <p id="arenaBesked"></p>
+  <button onclick="location.reload()">🔄 Start forfra</button>
+</div>
+
+<script>
+let arenaAktiv = false;
+let spiller;
+let fjender = [];
+let stjerner = [];
+let arenaPoint = 0;
+let quizStyrke = 0;
+let sidsteSkade = 0;
+
+const canvas = document.getElementById("spilbane");
+const ctx = canvas.getContext("2d");
+
+function startArena() {
+  document.getElementById("spil").style.display = "none";
+  document.getElementById("arena").style.display = "block";
+
+  quizStyrke = point;
+  arenaPoint = 0;
+
+  spiller = {
+    x: 280,
+    y: 200,
+    liv: 3 + Math.floor(quizStyrke / 10),
+    styrke: 1 + Math.floor(quizStyrke / 20)
+  };
+
+  fjender = [
+    {x: 60, y: 60},
+    {x: 490, y: 70},
+    {x: 80, y: 330}
+  ];
+
+  stjerner = [];
+  for (let i = 0; i < 8; i++) {
+    nyStjerne();
+  }
+
+  arenaAktiv = true;
+  opdaterInfo();
+  requestAnimationFrame(spilLoop);
+}
+
+function nyStjerne() {
+  stjerner.push({
+    x: 20 + Math.random() * 520,
+    y: 20 + Math.random() * 360
+  });
+}
+
+function flyt(dx, dy) {
+  if (!arenaAktiv) return;
+
+  spiller.x = Math.max(15,
+    Math.min(545, spiller.x + dx * 25));
+
+  spiller.y = Math.max(15,
+    Math.min(385, spiller.y + dy * 25));
+}
+
+function angrib() {
+  if (!arenaAktiv) return;
+
+  let ramt = 0;
+
+  fjender = fjender.filter(fjende => {
+    const afstand = Math.hypot(
+      fjende.x - spiller.x,
+      fjende.y - spiller.y
+    );
+
+    if (afstand < 45 + spiller.styrke * 10) {
+      ramt++;
+      arenaPoint += 20;
+      return false;
+    }
+    return true;
+  });
+
+  document.getElementById("arenaBesked").innerText =
+    ramt > 0 ? "⚡ Du ramte en fjende!" :
+    "Angrebet ramte ikke!";
+
+  opdaterInfo();
+}
+
+function opdaterInfo() {
+  document.getElementById("arenaInfo").innerText =
+    "❤️ Liv: " + spiller.liv +
+    " | ⚡ Styrke: " + spiller.styrke +
+    " | ⭐ Arenapoint: " + arenaPoint;
+}
+
+function spilLoop(tid) {
+  if (!arenaAktiv) return;
+
+  ctx.clearRect(0, 0, 560, 400);
+
+  // Tegn gulvet
+  ctx.fillStyle = "#111827";
+  ctx.fillRect(0, 0, 560, 400);
+
+  // Tegn stjerner
+  ctx.font = "25px Arial";
+  stjerner.forEach(s => {
+    ctx.fillText("⭐", s.x - 12, s.y + 9);
+  });
+
+  // Tegn spilleren
+  ctx.font = "32px Arial";
+  ctx.fillText("🦸", spiller.x - 16, spiller.y + 12);
+
+  // Saml stjerner
+  stjerner = stjerner.filter(s => {
+    const afstand = Math.hypot(
+      s.x - spiller.x,
+      s.y - spiller.y
+    );
+
+    if (afstand < 27) {
+      arenaPoint += 5;
+      nyStjerne();
+      opdaterInfo();
+      return false;
+    }
+    return true;
+  });
+
+  // Fjender bevæger sig mod spilleren
+  fjender.forEach(f => {
+    const afstand = Math.hypot(
+      spiller.x - f.x,
+      spiller.y - f.y
+    );
+
+    if (afstand > 1) {
+      f.x += (spiller.x - f.x) / afstand * 0.6;
+      f.y += (spiller.y - f.y) / afstand * 0.6;
+    }
+
+    ctx.fillText("👾", f.x - 15, f.y + 12);
+
+    if (afstand < 25 && tid - sidsteSkade > 1200) {
+      spiller.liv--;
+      sidsteSkade = tid;
+      opdaterInfo();
+
+      if (spiller.liv <= 0) {
+        arenaAktiv = false;
+        document.getElementById("arenaBesked").innerText =
+          "💥 GAME OVER! Du fik " +
+          arenaPoint + " arenapoint!";
+      }
+    }
+  });
+
+  if (arenaAktiv && fjender.length === 0) {
+    arenaAktiv = false;
+    document.getElementById("arenaBesked").innerText =
+      "🏆 SEJR! Du besejrede alle fjenderne!";
+  }
+
+  if (arenaAktiv) requestAnimationFrame(spilLoop);
+}
+
+document.addEventListener("keydown", function(e) {
+  if (!arenaAktiv) return;
+
+  if (["ArrowUp", "ArrowDown", "ArrowLeft",
+       "ArrowRight", " "].includes(e.key)) {
+    e.preventDefault();
+  }
+
+  if (e.key === "ArrowUp") flyt(0, -1);
+  if (e.key === "ArrowDown") flyt(0, 1);
+  if (e.key === "ArrowLeft") flyt(-1, 0);
+  if (e.key === "ArrowRight") flyt(1, 0);
+  if (e.key === " ") angrib();
+});
+</script>
+
+</body>
+</html>
